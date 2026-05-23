@@ -24,7 +24,7 @@
 
 > **Verified on `pocito-ws1` (Docker 29.4.3 / Compose v5.1.3) 2026-05-23.** The initial build FAILED — `uv sync` builds the `peppify` package and hatchling requires the `LICENSE` + `README.md` files named in `pyproject.toml`, but the Dockerfile copied neither. Fixed by adding `LICENSE README.md` to the source-layer `COPY`. All 4.x below verified against the fixed Dockerfile.
 
-- [x] 4.1 `docker build -t peppify:dev .` succeeds on a clean clone — **succeeds after the LICENSE/README COPY fix; failed before it**
+- [x] 4.1 `docker build -t peppify:dev .` succeeds on a clean clone — **succeeds; required the LICENSE/README COPY fix (commit 9e31e8f), now verified building from a pristine clone of `origin/development`**
 - [x] 4.2 `docker run --rm -p 127.0.0.1:5000:5000 --env-file .env peppify:dev` starts and serves the webapp — **gunicorn 25.3.0, 2 workers, runs as non-root `appuser`**
 - [x] 4.3 Hit `GET /` from the host and confirm the index page loads — **HTTP 200, "Peppify — Invoice Composer"**
 - [x] 4.4 Hit `GET /api/org-info` (with dummy env vars OK if the endpoint is gated) and confirm the route reaches Flask — **HTTP 200 with live test-server org data**
@@ -51,7 +51,7 @@
 ## 7. Verification & archive
 
 - [x] 7.1 Run the full local checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest` — all clean; 178 tests pass, 99.25% coverage
-- [ ] 7.2 Rebuild the Docker image from a fresh clone of the branch and re-run the smoke test in task 4 to confirm no host-machine contamination — **built from a fresh pull on `pocito-ws1` and all 4.x pass, BUT only with the LICENSE/README Dockerfile fix; a pristine clone of `origin/development` still fails until that fix is committed and pushed**
+- [x] 7.2 Rebuild the Docker image from a fresh clone of the branch and re-run the smoke test in task 4 to confirm no host-machine contamination — **verified on `pocito-ws1` 2026-05-23: `git clone` of `origin/development` @ 9e31e8f, built clean (372 MB), all 4.x re-passed, runtime user `appuser`**
 - [x] 7.3 Run `openspec validate production-deployment --strict` and resolve any findings — passes
 - [ ] 7.4 Open PR referencing this change directory; after merge, archive via `/openspec-archive-change` — **PR opened and merged; archive still pending the deferred Docker tasks (3.2, 4.x, 5.4, 5.5, 7.2)**
 
