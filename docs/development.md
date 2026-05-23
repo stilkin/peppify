@@ -1,5 +1,22 @@
 # Development
 
+## Tech stack
+
+| Layer | Stack |
+|---|---|
+| Language | Python 3.10+ |
+| Package manager | [`uv`](https://docs.astral.sh/uv/) (venv + pip + lockfile in one tool) |
+| HTTP client | `requests` + `urllib3.Retry` adapter |
+| Configuration | `python-dotenv` |
+| XSD validation | `xmlschema` (pure Python) with a cached schema instance |
+| PDF rendering | [WeasyPrint](https://weasyprint.org/) + Jinja2 (HTML template → PDF) |
+| Web UI backend | Flask 3 |
+| Web UI frontend | Jinja2 templates + vanilla JS + CSS (no build step, no framework) |
+| State (web UI) | browser localStorage — no server-side database |
+| Bundled schemas | Official OASIS UBL 2.1 XSD files in `schemas/xsd/` |
+
+PEPPOL BIS Billing 3.0 process type and document type strings are sourced from the Peppyrus OpenAPI spec in [`openapi_peppyrus.json`](openapi_peppyrus.json).
+
 ## Project structure
 
 ```text
@@ -19,6 +36,9 @@ webapp/
 tests/                     pytest suite (unit + Flask test client)
 schemas/xsd/               Official UBL 2.1 XSD schemas (OASIS)
 docs/
+  installation.md          Local install (uv, WeasyPrint native libs)
+  deployment.md            Run modes (Docker, gunicorn, dev server)
+  usage.md                 CLI + web UI guide
   invoice-json-schema.md   Full JSON input reference
   openapi_peppyrus.json    Peppyrus OpenAPI 3.0 specification
 openspec/                  Spec-driven change history (archived)
