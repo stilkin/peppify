@@ -517,11 +517,11 @@ function makeLineRow(line = {}) {
   row.querySelector(".save-tpl-btn").addEventListener("click", () => {
     const data = readLine(row);
     if (!data.description) {
-      showResult({
-        kind: "error",
-        title: "Cannot save template",
-        summary: "Enter a description first.",
-      });
+      // Point the user at the field to fill, inline — no bottom-panel detour.
+      const desc = row.querySelector(".line-desc-input");
+      desc.classList.add("invalid");
+      desc.focus();
+      setTimeout(() => desc.classList.remove("invalid"), 1500);
       return;
     }
     // Dates belong to a specific invoice, not to a reusable template.

@@ -478,6 +478,9 @@ select#template-select {
 }
 
 .line-desc-input:focus { border-bottom-color: var(--oxblood); }
+/* Transient flag when trying to save a template with no description. */
+.line-desc-input.invalid,
+.line-desc-input.invalid:focus { border-bottom-color: var(--error); }
 
 .line-row-actions {
   display: flex;
