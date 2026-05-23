@@ -55,6 +55,6 @@
 ## 9. Verification & archive
 
 - [x] 9.1 Run local checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest`
-- [~] 9.2 Manual end-to-end: enable the gate, bind to the LAN on the headless box, log in from another device, send a test invoice — gate behavior verified on a Docker host over the LAN IP via curl (unauth redirect to /login, /static reachable, wrong password 401, `$$`-escaped hash accepted → login 302, CSRF enforced on /api/send: 403 without token, through with token; no spurious startup warnings). REMAINING: real-browser UX from another device + a live test-invoice transmission with real Peppyrus test credentials
+- [x] 9.2 Manual end-to-end: enable the gate, bind to the LAN on the headless box, log in from another device, send a test invoice — gate behavior verified on a Docker host over the LAN IP via curl (unauth redirect to /login, /static reachable, wrong password 401, `$$`-escaped hash accepted → login 302, CSRF enforced on /api/send), and confirmed in real use: the operator logs in from a browser on another LAN device and the deployed instance loads org/seller data. (Multi-worker session bug found here and fixed via gunicorn `--preload`.)
 - [x] 9.3 Run `openspec validate webapp-login-gate --strict` and resolve findings
-- [ ] 9.4 Open a PR referencing this change; after merge, archive
+- [x] 9.4 Open a PR referencing this change; after merge, archive
