@@ -177,7 +177,7 @@ A full `sample_credit_note.json` can be derived from `sample_invoice.json` by re
 
 The same invoice JSON feeds the PDF renderer (`peppol_sender.pdf.render_pdf`) as well as the UBL generator. The CLI `create` subcommand and the webapp's `/api/validate`/`/api/send` routes embed the rendered PDF inside the UBL XML as a `cac:AdditionalDocumentReference` (PEPPOL BIS Billing 3.0 rule R008 "visual representation"). Pass `--no-pdf` to `cli.py create` for XML-only output. No new JSON fields are required — the PDF is derived entirely from the fields documented above.
 
-**Credit-note caveat**: the PDF template is not yet document-type aware and still renders the heading as "Invoice" even when called from `generate_credit_note(..., embed_pdf=True)`. If you need a correctly-labeled visual representation for a credit note, use `--no-pdf` and attach the visual out-of-band until a future change makes the template document-type aware.
+**Credit notes**: the PDF template is document-type aware. When the JSON contains `credit_note_type_code` (i.e. when rendered via `generate_credit_note(..., embed_pdf=True)` or `cli.py create --type credit-note`), the heading renders as the translated "Credit Note" label (Creditnota / Note de crédit / Gutschrift) instead of "Invoice".
 
 ## Notes
 

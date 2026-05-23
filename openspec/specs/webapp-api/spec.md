@@ -1,6 +1,10 @@
 # Webapp API
 
-## ADDED Requirements
+## Purpose
+
+The Flask backend for the single-page invoice form: serves the page and exposes JSON endpoints for organization info, buyer lookup, business-card enrichment, validation, send, and PDF preview. Stateless beyond the `.env` credentials.
+
+## Requirements
 
 ### Requirement: Serve invoice form
 

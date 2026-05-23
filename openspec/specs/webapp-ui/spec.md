@@ -1,6 +1,10 @@
 # Webapp UI
 
-## ADDED Requirements
+## Purpose
+
+The single-page invoice form rendered in the browser: seller/buyer/line-item/settings sections, live totals, guarded send, and per-browser state (recent customers, templates, defaults) in localStorage. Built with Jinja2 templates plus vanilla JS and CSS — no framework, no build step.
+
+## Requirements
 
 ### Requirement: Invoice form layout
 
