@@ -24,7 +24,9 @@ RUN uv sync --frozen --no-dev --group prod --no-install-project
 COPY peppol_sender/ peppol_sender/
 COPY webapp/ webapp/
 COPY schemas/ schemas/
-COPY cli.py sample_invoice.json ./
+# LICENSE + README.md are required by pyproject.toml (license + readme metadata);
+# the final `uv sync` builds the peppify package and hatchling validates both.
+COPY cli.py sample_invoice.json LICENSE README.md ./
 
 # Finalize install with project code in place.
 RUN uv sync --frozen --no-dev --group prod
