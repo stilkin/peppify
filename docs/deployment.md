@@ -52,12 +52,16 @@ machine it runs on. There are two sanctioned ways to expose it:
 
 1. **Optional login gate (single-tenant LAN).** Set `APP_PASSWORD_HASH` in `.env` to enable a
    single-password gate over the whole UI, then set `BIND_HOST=0.0.0.0` (and optionally `BIND_PORT`)
-   to reach it from other devices on a *trusted* LAN — e.g. a headless workstation. Generate the hash
-   with:
+   to reach it from other devices on a *trusted* LAN — e.g. a headless workstation. Generate a
+   ready-to-paste `.env` line with:
 
    ```bash
-   uv run python -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('your-password'))"
+   uv run python -c 'from werkzeug.security import generate_password_hash as g; print("APP_PASSWORD_HASH=" + g("your-password").replace("$", "$$"))'
    ```
+
+   The `$` are doubled to `$$` so Docker Compose (which interpolates `$` in `.env`) keeps the hash
+   intact; the app collapses `$$` back to `$`, so the same line also works for the dev server and
+   bare-metal gunicorn.
 
    `BIND_HOST` / `BIND_PORT` are honored by the dev server, bare-metal gunicorn (via
    `gunicorn.conf.py`), and the Docker host-port mapping. Run multiple deployments on one host by

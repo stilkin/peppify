@@ -516,3 +516,32 @@ def test_login_ui_and_csrf_token_present_when_authenticated(gated_client: FlaskC
     with gated_client.session_transaction() as sess:
         token = sess["csrf_token"]
     assert token and token in body
+
+
+# ---------- Docker Compose '$$' escaping of the hash ----------
+
+
+def test_password_hash_collapses_compose_escaping(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A '$$'-escaped hash (needed for Docker .env) is collapsed back to '$';
+    a plain single-'$' hash is passed through unchanged."""
+    from werkzeug.security import check_password_hash, generate_password_hash
+
+    from webapp.app import _password_hash
+
+    raw = generate_password_hash("pw")
+    monkeypatch.setenv("APP_PASSWORD_HASH", raw.replace("$", "$$"))
+    assert check_password_hash(_password_hash(), "pw")
+    monkeypatch.setenv("APP_PASSWORD_HASH", raw)
+    assert _password_hash() == raw
+
+
+def test_login_accepts_double_dollar_escaped_hash(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Login works when the hash is stored in the '$$' (Compose-safe) form."""
+    from werkzeug.security import generate_password_hash
+
+    monkeypatch.setenv("PEPPYRUS_API_KEY", "test-key")
+    monkeypatch.setenv("APP_PASSWORD_HASH", generate_password_hash(_GATE_PASSWORD).replace("$", "$$"))
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        resp = c.post("/login", data={"password": _GATE_PASSWORD})
+        assert resp.status_code == 302

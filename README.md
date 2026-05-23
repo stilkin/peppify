@@ -87,11 +87,13 @@ Peppify works as a command-line tool and a single-page web form. See [`docs/usag
 
 The webapp has **no authentication by default**. Anyone who can reach the HTTP port can create, validate, and send invoices signed with your Peppyrus API key. All run modes bind to `127.0.0.1` out of the box, so by default it is only reachable from the machine it runs on.
 
-**Optional login gate.** Setting `APP_PASSWORD_HASH` in `.env` enables a single-password login gate over the whole web UI. With the gate enabled you can bind to a non-loopback address (`BIND_HOST=0.0.0.0`) for **single-tenant LAN use** — e.g. reaching a headless workstation from another device. Generate the hash (store the hash, never the plaintext) with:
+**Optional login gate.** Setting `APP_PASSWORD_HASH` in `.env` enables a single-password login gate over the whole web UI. With the gate enabled you can bind to a non-loopback address (`BIND_HOST=0.0.0.0`) for **single-tenant LAN use** — e.g. reaching a headless workstation from another device. Generate a ready-to-paste `.env` line (store the hash, never the plaintext) with:
 
 ```bash
-uv run python -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('your-password'))"
+uv run python -c 'from werkzeug.security import generate_password_hash as g; print("APP_PASSWORD_HASH=" + g("your-password").replace("$", "$$"))'
 ```
+
+The `$` are doubled to `$$` because Docker Compose interpolates `$` in `.env` values; the app collapses `$$` back to `$`, so the same line works for the dev server and gunicorn too.
 
 The bind address is configurable via `BIND_HOST` / `BIND_PORT` (default `127.0.0.1:5000`); these apply to the dev server, bare-metal gunicorn (via `gunicorn.conf.py`), and the Docker host-port mapping. Multiple deployments can coexist on one host with distinct `BIND_PORT` and `COMPOSE_PROJECT_NAME` values. If you bind to a non-loopback interface **without** setting `APP_PASSWORD_HASH`, the app logs a prominent startup warning but still starts.
 

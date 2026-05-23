@@ -65,6 +65,28 @@ def _gate_enabled() -> bool:
     return bool(os.getenv("APP_PASSWORD_HASH"))
 
 
+def _password_hash() -> str:
+    """The configured password hash, with Docker-Compose '$$' escapes collapsed.
+
+    Werkzeug hashes use '$' as a separator, and Docker Compose interpolates '$'
+    in .env values — so operators must double them to '$$'. A real hash never
+    contains '$$', which makes collapsing here safe and lets a single .env work
+    for both the Docker and the bare-metal/dev paths.
+    """
+    return os.getenv("APP_PASSWORD_HASH", "").replace("$$", "$")
+
+
+# Early, loud warning for the most common gate misconfiguration: a hash whose
+# '$' were eaten by Compose interpolation (set in a Docker .env without doubling).
+# Runs at import so it also fires under gunicorn in the container.
+if _gate_enabled() and _password_hash().count("$") < 2:
+    app.logger.warning(
+        "APP_PASSWORD_HASH does not look like a valid password hash; login will "
+        "fail. If you set it in a Docker Compose .env, double each '$' to '$$' "
+        "(Compose interpolates '$'), or regenerate it with the one-liner in .env.example."
+    )
+
+
 def _csrf_ok() -> bool:
     """True if the request carries the session's CSRF token in X-CSRFToken."""
     expected = session.get("csrf_token", "")
@@ -103,7 +125,7 @@ def login() -> Any:
         return redirect(url_for("index"))
     if request.method == "POST":
         password = request.form.get("password", "")
-        if check_password_hash(os.getenv("APP_PASSWORD_HASH", ""), password):
+        if check_password_hash(_password_hash(), password):
             session["authenticated"] = True
             session["csrf_token"] = secrets.token_urlsafe(32)
             return redirect(url_for("index"))
