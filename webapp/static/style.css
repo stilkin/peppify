@@ -478,9 +478,19 @@ select#template-select {
 }
 
 .line-desc-input:focus { border-bottom-color: var(--oxblood); }
-/* Transient flag when trying to save a template with no description. */
+/* Saving a template with no description: flash the whole field + a quick shake
+   (a native validation bubble with the reason is triggered from JS). */
+@keyframes desc-nudge {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
 .line-desc-input.invalid,
-.line-desc-input.invalid:focus { border-bottom-color: var(--error); }
+.line-desc-input.invalid:focus {
+  border-bottom-color: var(--error);
+  background: rgba(139, 44, 40, 0.07);
+  animation: desc-nudge 0.4s ease;
+}
 
 .line-row-actions {
   display: flex;

@@ -517,11 +517,16 @@ function makeLineRow(line = {}) {
   row.querySelector(".save-tpl-btn").addEventListener("click", () => {
     const data = readLine(row);
     if (!data.description) {
-      // Point the user at the field to fill, inline — no bottom-panel detour.
+      // Inline feedback: flash + shake the field (motion registers even when it
+      // already has focus) and pop the native validation bubble with the reason.
       const desc = row.querySelector(".line-desc-input");
+      desc.classList.remove("invalid");
+      void desc.offsetWidth; // restart the CSS animation on repeat clicks
       desc.classList.add("invalid");
-      desc.focus();
+      desc.setCustomValidity("Enter a description first.");
+      desc.reportValidity(); // focuses the field and shows the bubble
       setTimeout(() => desc.classList.remove("invalid"), 1500);
+      desc.addEventListener("input", () => desc.setCustomValidity(""), { once: true });
       return;
     }
     // Dates belong to a specific invoice, not to a reusable template.
