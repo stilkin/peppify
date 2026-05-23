@@ -1,8 +1,10 @@
 # PDF Rendering
 
+## Purpose
+
 Renders a human-readable PDF of an invoice from the same JSON data structure that feeds the UBL generator. Used by the CLI (to embed in UBL), the webapp (for the `Preview PDF` button and for embed on send), and any future callers that need a visual representation. Backed by Jinja2 (`peppol_sender/templates/invoice.html`) + WeasyPrint, with a lazy WeasyPrint import so consumers that never call `render_pdf()` do not need Pango/Cairo installed at the OS level.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Render invoice PDF from JSON
 
