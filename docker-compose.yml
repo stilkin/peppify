@@ -4,6 +4,11 @@ services:
     image: peppify:latest
     env_file: .env
     ports:
-      # Loopback-only by default — see the Security section in README.md.
-      - "127.0.0.1:5000:5000"
+      # Host-facing mapping from BIND_HOST/BIND_PORT (Compose reads ./.env for
+      # ${...} interpolation). Loopback-only by default — see README "Security".
+      # Only bind to a non-loopback address (e.g. 0.0.0.0) with APP_PASSWORD_HASH set.
+      - "${BIND_HOST:-127.0.0.1}:${BIND_PORT:-5000}:5000"
     restart: unless-stopped
+    # To run several deployments on one host, give each its own directory and a
+    # distinct BIND_PORT + COMPOSE_PROJECT_NAME in .env so container/volume/network
+    # names don't collide.

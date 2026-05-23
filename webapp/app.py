@@ -8,11 +8,13 @@ browser persists customer/template/defaults state.
 from __future__ import annotations
 
 import os
+import secrets
 from io import BytesIO
 from typing import Any
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
+from werkzeug.security import check_password_hash
 
 from peppol_sender.api import (
     get_org_info,
@@ -35,6 +37,85 @@ _DOCUMENT_TYPE = (
 )
 
 app = Flask(__name__)
+
+# Session signing key. Read from the environment so sessions survive restarts;
+# fall back to a random key (with a warning) so the app still works out of the box.
+_secret = os.getenv("SECRET_KEY")
+if not _secret:
+    _secret = secrets.token_hex(32)
+    app.logger.warning(
+        "No SECRET_KEY set; using a random one. Sessions and CSRF tokens will "
+        "not survive a restart (you will be logged out). Set SECRET_KEY in .env "
+        "to make them persistent."
+    )
+app.secret_key = _secret
+# HttpOnly + SameSite=Lax protect the session cookie. Secure is off by default
+# because the gate is expected to run over plain HTTP on a trusted LAN (a Secure
+# cookie would not be sent over HTTP and would silently break login); set
+# SESSION_COOKIE_SECURE=true in the environment when serving behind TLS.
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("SESSION_COOKIE_SECURE", "").lower() in ("1", "true", "yes"),
+)
+
+
+def _gate_enabled() -> bool:
+    """The login gate is on iff a password hash is configured."""
+    return bool(os.getenv("APP_PASSWORD_HASH"))
+
+
+def _csrf_ok() -> bool:
+    """True if the request carries the session's CSRF token in X-CSRFToken."""
+    expected = session.get("csrf_token", "")
+    token = request.headers.get("X-CSRFToken", "")
+    return bool(expected) and secrets.compare_digest(token, expected)
+
+
+def warn_if_exposed() -> None:
+    """Warn (don't refuse) when bound to a non-loopback interface with no gate."""
+    host = os.getenv("BIND_HOST", "127.0.0.1")
+    loopback = host.startswith("127.") or host in ("localhost", "::1", "")
+    if not loopback and not _gate_enabled():
+        app.logger.warning(
+            "Webapp bound to %s with NO login gate (APP_PASSWORD_HASH unset) — it is "
+            "exposed without authentication. Set APP_PASSWORD_HASH to enable the gate.",
+            host,
+        )
+
+
+@app.before_request
+def _require_auth() -> Any:
+    """When the gate is on, require an authenticated session for all routes
+    except login/logout and static assets."""
+    if not _gate_enabled() or session.get("authenticated"):
+        return None
+    if request.endpoint in ("login", "logout", "static"):
+        return None
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Authentication required"}), 401
+    return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login() -> Any:
+    if not _gate_enabled():
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if check_password_hash(os.getenv("APP_PASSWORD_HASH", ""), password):
+            session["authenticated"] = True
+            session["csrf_token"] = secrets.token_urlsafe(32)
+            return redirect(url_for("index"))
+        # Same message whether the field was empty or wrong — no info leak.
+        return render_template("login.html", error="Incorrect password."), 401
+    return render_template("login.html")
+
+
+@app.route("/logout", methods=["POST"])
+def logout() -> Any:
+    session.clear()
+    return redirect(url_for("login"))
 
 
 @app.after_request
@@ -61,7 +142,11 @@ def _missing_credentials_response() -> tuple[Any, int]:
 
 @app.route("/")
 def index() -> str:
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        gate_enabled=_gate_enabled(),
+        csrf_token=session.get("csrf_token", ""),
+    )
 
 
 @app.route("/api/org-info")
@@ -137,6 +222,8 @@ def api_validate() -> tuple[Any, int]:
 
 @app.route("/api/send", methods=["POST"])
 def api_send() -> tuple[Any, int]:
+    if _gate_enabled() and not _csrf_ok():
+        return jsonify({"error": "Invalid or missing CSRF token"}), 403
     creds = _creds()
     if creds is None:
         return _missing_credentials_response()
@@ -161,5 +248,8 @@ def api_send() -> tuple[Any, int]:
 
 
 if __name__ == "__main__":
+    host = os.getenv("BIND_HOST", "127.0.0.1")
+    port = int(os.getenv("BIND_PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
-    app.run(host="127.0.0.1", port=5000, debug=debug)
+    warn_if_exposed()
+    app.run(host=host, port=port, debug=debug)

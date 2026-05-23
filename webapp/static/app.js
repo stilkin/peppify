@@ -5,6 +5,9 @@
 
 // ---------- Constants ----------
 
+// CSRF token for POST /api/send; empty string when the login gate is disabled.
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
 const LS_KEYS = {
   defaults: "peppol_defaults",
   customers: "peppol_customers",
@@ -718,7 +721,7 @@ async function doSend() {
   try {
     const resp = await fetch(`/api/send?embed_pdf=${getEmbedPdf()}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
       body: JSON.stringify({ invoice, recipient }),
     });
     const data = await resp.json();

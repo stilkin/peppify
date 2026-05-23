@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peppify — Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      border: 1px solid var(--paper-edge);
+      background: var(--paper);
+      padding: 40px 36px;
+    }
+    .login-card h1 {
+      font-family: var(--display);
+      font-weight: 300;
+      font-size: 52px;
+      letter-spacing: -0.02em;
+      line-height: 0.9;
+      margin: 0;
+      color: var(--ink);
+    }
+    .login-card .subtitle {
+      font-family: var(--body);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin: 6px 0 28px;
+    }
+    .login-error {
+      font-family: var(--body);
+      font-size: 14px;
+      color: var(--error);
+      margin: 0 0 16px;
+    }
+    .login-card .btn { width: 100%; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" method="post" action="{{ url_for('login') }}">
+      <h1>Peppify</h1>
+      <p class="subtitle">Please sign in</p>
+      {% if error %}<p class="login-error" role="alert">{{ error }}</p>{% endif %}
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" autofocus required>
+      </div>
+      <button class="btn btn-primary" type="submit">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>
