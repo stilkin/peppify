@@ -38,7 +38,7 @@
 - [x] 5.2 Add `env_file: .env` to the service
 - [x] 5.3 Add `restart: unless-stopped`
 - [x] 5.4 Verify `docker compose up --build` brings the app up and `docker compose down` tears it down cleanly, with no leftover volumes or named networks — **verified: up serves HTTP 200; down removed container + `_default` network, no leftover volumes**
-- [ ] 5.5 Confirm from another machine on the LAN that port 5000 is NOT reachable (negative test for the loopback binding) — **binding verified loopback-only (`ss` shows `LISTEN 127.0.0.1:5000`, not `0.0.0.0`); literal cross-machine probe still needs a second host**
+- [x] 5.5 Confirm from another machine on the LAN that port 5000 is NOT reachable (negative test for the loopback binding) — **verified: `ss` shows `LISTEN 127.0.0.1:5000` (not `0.0.0.0`), and a probe from another LAN device could not reach port 5000**
 
 ## 6. Documentation
 
@@ -53,7 +53,7 @@
 - [x] 7.1 Run the full local checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest` — all clean; 178 tests pass, 99.25% coverage
 - [x] 7.2 Rebuild the Docker image from a fresh clone of the branch and re-run the smoke test in task 4 to confirm no host-machine contamination — **verified on `pocito-ws1` 2026-05-23: `git clone` of `origin/development` @ 9e31e8f, built clean (372 MB), all 4.x re-passed, runtime user `appuser`**
 - [x] 7.3 Run `openspec validate production-deployment --strict` and resolve any findings — passes
-- [ ] 7.4 Open PR referencing this change directory; after merge, archive via `/openspec-archive-change` — **PR opened and merged; archive still pending the deferred Docker tasks (3.2, 4.x, 5.4, 5.5, 7.2)**
+- [x] 7.4 Open PR referencing this change directory; after merge, archive via `/openspec-archive-change` — **PR opened and merged; Docker tasks completed on `pocito-ws1` 2026-05-23; archived**
 
 ## Notes
 
