@@ -18,27 +18,27 @@
 ## 3. Dockerignore
 
 - [x] 3.1 Create `.dockerignore` excluding `.venv/`, `.git/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.env`, `tests/`, `docs/`, `openspec/`, `.claude/`, `.opencode/`, `README.md` edit history, and any `*.xml` / `*.pdf` leftovers from local runs
-- [ ] 3.2 Build the image and confirm the build context is small (< ~10 MB) via `docker build --progress=plain .` output — **deferred: no Docker on dev machine**
+- [x] 3.2 Build the image and confirm the build context is small (< ~10 MB) via `docker build --progress=plain .` output — **verified on `pocito-ws1` 2026-05-23: context = 3.65 MB**
 
 ## 4. Build & smoke test
 
-> **Deferred** — the dev machine (Linux on a 2011 MacBook) does not have Docker installed, so tasks 4.x must be completed on a host with a working Docker daemon before this change is archived.
+> **Verified on `pocito-ws1` (Docker 29.4.3 / Compose v5.1.3) 2026-05-23.** The initial build FAILED — `uv sync` builds the `peppify` package and hatchling requires the `LICENSE` + `README.md` files named in `pyproject.toml`, but the Dockerfile copied neither. Fixed by adding `LICENSE README.md` to the source-layer `COPY`. All 4.x below verified against the fixed Dockerfile.
 
-- [ ] 4.1 `docker build -t peppify:dev .` succeeds on a clean clone
-- [ ] 4.2 `docker run --rm -p 127.0.0.1:5000:5000 --env-file .env peppify:dev` starts and serves the webapp
-- [ ] 4.3 Hit `GET /` from the host and confirm the index page loads
-- [ ] 4.4 Hit `GET /api/org-info` (with dummy env vars OK if the endpoint is gated) and confirm the route reaches Flask
-- [ ] 4.5 Render a PDF inside the container via `POST /api/preview-pdf` with `sample_invoice.json` and confirm a valid PDF is returned (proves Pango/Cairo/fontconfig are present)
-- [ ] 4.6 Confirm the Werkzeug dev-server warning is absent from `docker logs`
-- [ ] 4.7 Record the resulting image size (`docker images peppify:dev`) in the PR description for future reference
+- [x] 4.1 `docker build -t peppify:dev .` succeeds on a clean clone — **succeeds; required the LICENSE/README COPY fix (commit 9e31e8f), now verified building from a pristine clone of `origin/development`**
+- [x] 4.2 `docker run --rm -p 127.0.0.1:5000:5000 --env-file .env peppify:dev` starts and serves the webapp — **gunicorn 25.3.0, 2 workers, runs as non-root `appuser`**
+- [x] 4.3 Hit `GET /` from the host and confirm the index page loads — **HTTP 200, "Peppify — Invoice Composer"**
+- [x] 4.4 Hit `GET /api/org-info` (with dummy env vars OK if the endpoint is gated) and confirm the route reaches Flask — **HTTP 200 with live test-server org data**
+- [x] 4.5 Render a PDF inside the container via `POST /api/preview-pdf` with `sample_invoice.json` and confirm a valid PDF is returned (proves Pango/Cairo/fontconfig are present) — **HTTP 200, `application/pdf`, 20 KB, `%PDF-1.7`**
+- [x] 4.6 Confirm the Werkzeug dev-server warning is absent from `docker logs` — **absent; only gunicorn boot lines**
+- [x] 4.7 Record the resulting image size (`docker images peppify:dev`) in the PR description for future reference — **372 MB**
 
 ## 5. docker-compose.yml
 
 - [x] 5.1 Create `docker-compose.yml` with one service `webapp` that builds from `.` and maps `"127.0.0.1:5000:5000"` (explicit loopback binding)
 - [x] 5.2 Add `env_file: .env` to the service
 - [x] 5.3 Add `restart: unless-stopped`
-- [ ] 5.4 Verify `docker compose up --build` brings the app up and `docker compose down` tears it down cleanly, with no leftover volumes or named networks — **deferred with tasks 4.x**
-- [ ] 5.5 Confirm from another machine on the LAN that port 5000 is NOT reachable (negative test for the loopback binding) — **deferred with tasks 4.x**
+- [x] 5.4 Verify `docker compose up --build` brings the app up and `docker compose down` tears it down cleanly, with no leftover volumes or named networks — **verified: up serves HTTP 200; down removed container + `_default` network, no leftover volumes**
+- [x] 5.5 Confirm from another machine on the LAN that port 5000 is NOT reachable (negative test for the loopback binding) — **verified: `ss` shows `LISTEN 127.0.0.1:5000` (not `0.0.0.0`), and a probe from another LAN device could not reach port 5000**
 
 ## 6. Documentation
 
@@ -51,9 +51,9 @@
 ## 7. Verification & archive
 
 - [x] 7.1 Run the full local checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest` — all clean; 178 tests pass, 99.25% coverage
-- [ ] 7.2 Rebuild the Docker image from a fresh clone of the branch and re-run the smoke test in task 4 to confirm no host-machine contamination — **deferred with tasks 4.x**
+- [x] 7.2 Rebuild the Docker image from a fresh clone of the branch and re-run the smoke test in task 4 to confirm no host-machine contamination — **verified on `pocito-ws1` 2026-05-23: `git clone` of `origin/development` @ 9e31e8f, built clean (372 MB), all 4.x re-passed, runtime user `appuser`**
 - [x] 7.3 Run `openspec validate production-deployment --strict` and resolve any findings — passes
-- [ ] 7.4 Open PR referencing this change directory; after merge, archive via `/openspec-archive-change`
+- [x] 7.4 Open PR referencing this change directory; after merge, archive via `/openspec-archive-change` — **PR opened and merged; Docker tasks completed on `pocito-ws1` 2026-05-23; archived**
 
 ## Notes
 
