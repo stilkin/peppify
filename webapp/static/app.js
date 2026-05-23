@@ -335,6 +335,21 @@ function cityFromGeoInfo(geoInfo) {
   return String(geoInfo).split(",")[0].trim();
 }
 
+// Inline feedback for the VAT lookup, shown right under the lookup row (close to
+// the action) rather than in the global #result-panel at the bottom of the page.
+function setLookupStatus(kind, message) {
+  const el = $("#lookup-status");
+  if (!kind) {
+    el.hidden = true;
+    el.textContent = "";
+    el.className = "lookup-status";
+    return;
+  }
+  el.hidden = false;
+  el.className = "lookup-status " + kind;
+  el.textContent = message;
+}
+
 async function lookupBuyer() {
   const country = ($("#lookup-country").value || "BE").trim().toUpperCase();
   const vat = normalizeVat($("#lookup-vat").value);
@@ -346,6 +361,7 @@ async function lookupBuyer() {
   const btn = $("#lookup-btn");
   btn.disabled = true;
   btn.textContent = "Looking up…";
+  setLookupStatus(null, "");
 
   try {
     // 1. Resolve VAT → participantId
@@ -353,7 +369,15 @@ async function lookupBuyer() {
       `/api/lookup?vatNumber=${encodeURIComponent(vat)}&countryCode=${encodeURIComponent(country)}`,
     );
     const lookupData = await lookupResp.json();
-    if (!lookupResp.ok) throw new Error(lookupData.error || "HTTP " + lookupResp.status);
+    if (!lookupResp.ok) {
+      // 404 = no participant resolves for this VAT in the active environment
+      // (notably, the test directory does not resolve legal VAT numbers).
+      const msg =
+        lookupResp.status === 404
+          ? `No PEPPOL participant found for ${country} ${vat}.`
+          : lookupData.error || `Lookup failed (HTTP ${lookupResp.status}).`;
+      throw new Error(msg);
+    }
 
     const participantId = lookupData.participantId || "";
     const [scheme, id] = participantId.includes(":")
@@ -398,15 +422,11 @@ async function lookupBuyer() {
 
     setBuyer(buyer);
     const canReceive =
-      lookupData.services && lookupData.services.length ? "(can receive invoices)" : "";
+      lookupData.services && lookupData.services.length ? " · can receive invoices" : "";
     const enrichNote = enriched ? " · directory data filled in" : "";
-    showResult({
-      kind: "success",
-      title: "Lookup successful",
-      summary: `Participant <strong>${escape(participantId)}</strong> ${canReceive}${enrichNote}`,
-    });
+    setLookupStatus("success", `Found ${participantId}${canReceive}${enrichNote}`);
   } catch (err) {
-    showResult({ kind: "error", title: "Lookup failed", summary: escape(String(err.message || err)) });
+    setLookupStatus("error", String(err.message || err));
   } finally {
     btn.disabled = false;
     btn.textContent = "Look up";
