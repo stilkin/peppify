@@ -34,7 +34,7 @@
 ## 6. Multiple deployments & compose
 
 - [x] 6.1 Parameterize `docker-compose.yml` host port mapping: `"${BIND_HOST:-127.0.0.1}:${BIND_PORT:-5000}:5000"` (container-internal port stays `5000`; `CMD -b 0.0.0.0:5000` unchanged)
-- [ ] 6.2 Document `COMPOSE_PROJECT_NAME` per deployment and verify two deployments on distinct `BIND_PORT`s coexist without container/volume/network collisions (documented in compose/README/deployment.md + .env.example; runtime coexistence check is part of the manual smoke test 9.2)
+- [x] 6.2 Document `COMPOSE_PROJECT_NAME` per deployment and verify two deployments on distinct `BIND_PORT`s coexist without container/volume/network collisions (verified on a Docker host: two stacks `gt-a`/`gt-b` on ports 5055/5056 came up with separate containers, networks, and no collisions)
 - [x] 6.3 Pass the new env vars through `env_file: .env` so the compose interpolation and container both see them
 
 ## 7. Documentation
@@ -55,6 +55,6 @@
 ## 9. Verification & archive
 
 - [x] 9.1 Run local checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy .`, `uv run pytest`
-- [ ] 9.2 Manual end-to-end: enable the gate, bind to the LAN on the headless box, log in from another device, send a test invoice
+- [~] 9.2 Manual end-to-end: enable the gate, bind to the LAN on the headless box, log in from another device, send a test invoice — gate behavior verified on a Docker host over the LAN IP via curl (unauth redirect to /login, /static reachable, wrong password 401, `$$`-escaped hash accepted → login 302, CSRF enforced on /api/send: 403 without token, through with token; no spurious startup warnings). REMAINING: real-browser UX from another device + a live test-invoice transmission with real Peppyrus test credentials
 - [x] 9.3 Run `openspec validate webapp-login-gate --strict` and resolve findings
 - [ ] 9.4 Open a PR referencing this change; after merge, archive
