@@ -46,8 +46,31 @@ uv run python webapp/app.py
 
 ## Exposing beyond localhost
 
-The webapp has **no built-in authentication** (see the [Security](../README.md#security) note).
+The webapp has **no authentication by default** (see the [Security](../README.md#security) note).
 All run modes above bind to `127.0.0.1`, so out of the box the app is only reachable from the
-machine it runs on. To expose it on a LAN or the internet you **must** put an authenticating reverse
-proxy (Caddy, Traefik, nginx + basic-auth, your SSO of choice) in front of it. Changing the bind
-address to `0.0.0.0` without such a proxy is unsafe.
+machine it runs on. There are two sanctioned ways to expose it:
+
+1. **Optional login gate (single-tenant LAN).** Set `APP_PASSWORD_HASH` in `.env` to enable a
+   single-password gate over the whole UI, then set `BIND_HOST=0.0.0.0` (and optionally `BIND_PORT`)
+   to reach it from other devices on a *trusted* LAN — e.g. a headless workstation. Generate a
+   ready-to-paste `.env` line with:
+
+   ```bash
+   uv run python -c 'from werkzeug.security import generate_password_hash as g; print("APP_PASSWORD_HASH=" + g("your-password").replace("$", "$$"))'
+   ```
+
+   The `$` are doubled to `$$` so Docker Compose (which interpolates `$` in `.env`) keeps the hash
+   intact; the app collapses `$$` back to `$`, so the same line also works for the dev server and
+   bare-metal gunicorn.
+
+   `BIND_HOST` / `BIND_PORT` are honored by the dev server, bare-metal gunicorn (via
+   `gunicorn.conf.py`), and the Docker host-port mapping. Run multiple deployments on one host by
+   giving each its own directory with a distinct `BIND_PORT` and `COMPOSE_PROJECT_NAME`. Binding to a
+   non-loopback address **without** `APP_PASSWORD_HASH` logs a loud startup warning (but still starts).
+
+   Over plain HTTP the password and session cookie are sent in **cleartext**. Fine for a trusted LAN;
+   on an untrusted network add a TLS-terminating reverse proxy and set `SESSION_COOKIE_SECURE=true`.
+
+2. **Authenticating reverse proxy.** For internet exposure or stronger guarantees, put a reverse proxy
+   (Caddy, Traefik, nginx + basic-auth, your SSO of choice) in front. This is **required** for any
+   non-loopback exposure when the login gate is not enabled.

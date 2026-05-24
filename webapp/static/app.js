@@ -5,6 +5,9 @@
 
 // ---------- Constants ----------
 
+// CSRF token for POST /api/send; empty string when the login gate is disabled.
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
 const LS_KEYS = {
   defaults: "peppol_defaults",
   customers: "peppol_customers",
@@ -332,6 +335,21 @@ function cityFromGeoInfo(geoInfo) {
   return String(geoInfo).split(",")[0].trim();
 }
 
+// Inline feedback for the VAT lookup, shown right under the lookup row (close to
+// the action) rather than in the global #result-panel at the bottom of the page.
+function setLookupStatus(kind, message) {
+  const el = $("#lookup-status");
+  if (!kind) {
+    el.hidden = true;
+    el.textContent = "";
+    el.className = "lookup-status";
+    return;
+  }
+  el.hidden = false;
+  el.className = "lookup-status " + kind;
+  el.textContent = message;
+}
+
 async function lookupBuyer() {
   const country = ($("#lookup-country").value || "BE").trim().toUpperCase();
   const vat = normalizeVat($("#lookup-vat").value);
@@ -343,14 +361,23 @@ async function lookupBuyer() {
   const btn = $("#lookup-btn");
   btn.disabled = true;
   btn.textContent = "Looking up…";
+  setLookupStatus(null, "");
 
   try {
     // 1. Resolve VAT → participantId
     const lookupResp = await fetch(
       `/api/lookup?vatNumber=${encodeURIComponent(vat)}&countryCode=${encodeURIComponent(country)}`,
     );
-    const lookupData = await lookupResp.json();
-    if (!lookupResp.ok) throw new Error(lookupData.error || "HTTP " + lookupResp.status);
+    const lookupData = await lookupResp.json().catch(() => ({}));
+    if (!lookupResp.ok) {
+      // 404 = no participant resolves for this VAT in the active environment
+      // (notably, the test directory does not resolve legal VAT numbers).
+      const msg =
+        lookupResp.status === 404
+          ? `No PEPPOL participant found for ${country} ${vat}.`
+          : lookupData.error || `Lookup failed (HTTP ${lookupResp.status}).`;
+      throw new Error(msg);
+    }
 
     const participantId = lookupData.participantId || "";
     const [scheme, id] = participantId.includes(":")
@@ -395,15 +422,11 @@ async function lookupBuyer() {
 
     setBuyer(buyer);
     const canReceive =
-      lookupData.services && lookupData.services.length ? "(can receive invoices)" : "";
+      lookupData.services && lookupData.services.length ? " · can receive invoices" : "";
     const enrichNote = enriched ? " · directory data filled in" : "";
-    showResult({
-      kind: "success",
-      title: "Lookup successful",
-      summary: `Participant <strong>${escape(participantId)}</strong> ${canReceive}${enrichNote}`,
-    });
+    setLookupStatus("success", `Found ${participantId}${canReceive}${enrichNote}`);
   } catch (err) {
-    showResult({ kind: "error", title: "Lookup failed", summary: escape(String(err.message || err)) });
+    setLookupStatus("error", String(err.message || err));
   } finally {
     btn.disabled = false;
     btn.textContent = "Look up";
@@ -494,11 +517,16 @@ function makeLineRow(line = {}) {
   row.querySelector(".save-tpl-btn").addEventListener("click", () => {
     const data = readLine(row);
     if (!data.description) {
-      showResult({
-        kind: "error",
-        title: "Cannot save template",
-        summary: "Enter a description first.",
-      });
+      // Inline feedback: flash + shake the field (motion registers even when it
+      // already has focus) and pop the native validation bubble with the reason.
+      const desc = row.querySelector(".line-desc-input");
+      desc.classList.remove("invalid");
+      void desc.offsetWidth; // restart the CSS animation on repeat clicks
+      desc.classList.add("invalid");
+      desc.setCustomValidity("Enter a description first.");
+      desc.reportValidity(); // focuses the field and shows the bubble
+      setTimeout(() => desc.classList.remove("invalid"), 1500);
+      desc.addEventListener("input", () => desc.setCustomValidity(""), { once: true });
       return;
     }
     // Dates belong to a specific invoice, not to a reusable template.
@@ -718,7 +746,7 @@ async function doSend() {
   try {
     const resp = await fetch(`/api/send?embed_pdf=${getEmbedPdf()}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
       body: JSON.stringify({ invoice, recipient }),
     });
     const data = await resp.json();

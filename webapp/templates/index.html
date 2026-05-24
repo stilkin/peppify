@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <title>Peppify — Invoice Composer</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='fonts.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -20,6 +21,13 @@
       <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings" title="Defaults">
         <span class="icon-glyph">⚙</span>
       </button>
+      {% if gate_enabled %}
+      <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+        <button class="icon-btn" type="submit" aria-label="Log out" title="Log out">
+          <span class="icon-glyph">⎋</span>
+        </button>
+      </form>
+      {% endif %}
     </div>
   </header>
 
@@ -60,6 +68,7 @@
               <input type="text" id="lookup-vat" placeholder="0123456789" autocomplete="off" aria-label="VAT number">
               <button type="button" id="lookup-btn">Look up</button>
             </div>
+            <p id="lookup-status" class="lookup-status" role="status" aria-live="polite" hidden></p>
           </div>
         </div>
 

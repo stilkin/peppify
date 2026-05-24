@@ -36,8 +36,13 @@ USER appuser
 
 EXPOSE 5000
 
+# --preload imports the app once in the master, so all workers share a single
+# session-signing key even when SECRET_KEY is unset (a per-worker random key
+# would otherwise break the login session across workers). The image ships no
+# gunicorn.conf.py, so this must live on the command line.
 CMD ["uv", "run", "gunicorn", "webapp.app:app", \
      "-b", "0.0.0.0:5000", \
      "--workers", "2", \
+     "--preload", \
      "--access-logfile", "-", \
      "--error-logfile", "-"]

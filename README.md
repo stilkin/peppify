@@ -85,9 +85,19 @@ Peppify works as a command-line tool and a single-page web form. See [`docs/usag
 
 ## Security
 
-The webapp has **no built-in authentication**. Anyone who can reach the HTTP port can create, validate, and send invoices signed with your Peppyrus API key.
+The webapp has **no authentication by default**. Anyone who can reach the HTTP port can create, validate, and send invoices signed with your Peppyrus API key. All run modes bind to `127.0.0.1` out of the box, so by default it is only reachable from the machine it runs on.
 
-All documented run modes bind the app to `127.0.0.1`, so out of the box it is only reachable from the machine it runs on. If you want to expose it beyond localhost (LAN or internet), you **must** put an authenticating reverse proxy (Caddy, Traefik, nginx + basic-auth, your SSO of choice) in front of it. Changing the bind address to `0.0.0.0` without such a proxy is unsafe.
+**Optional login gate.** Setting `APP_PASSWORD_HASH` in `.env` enables a single-password login gate over the whole web UI. With the gate enabled you can bind to a non-loopback address (`BIND_HOST=0.0.0.0`) for **single-tenant LAN use** — e.g. reaching a headless workstation from another device. Generate a ready-to-paste `.env` line (store the hash, never the plaintext) with:
+
+```bash
+uv run python -c 'from werkzeug.security import generate_password_hash as g; print("APP_PASSWORD_HASH=" + g("your-password").replace("$", "$$"))'
+```
+
+The `$` are doubled to `$$` because Docker Compose interpolates `$` in `.env` values; the app collapses `$$` back to `$`, so the same line works for the dev server and gunicorn too.
+
+The bind address is configurable via `BIND_HOST` / `BIND_PORT` (default `127.0.0.1:5000`); these apply to the dev server, bare-metal gunicorn (via `gunicorn.conf.py`), and the Docker host-port mapping. Multiple deployments can coexist on one host with distinct `BIND_PORT` and `COMPOSE_PROJECT_NAME` values. If you bind to a non-loopback interface **without** setting `APP_PASSWORD_HASH`, the app logs a prominent startup warning but still starts.
+
+**Plain-HTTP caveat.** Over plain HTTP the login password and session cookie travel in **cleartext**. The gate is suitable for a *trusted* LAN; on an untrusted network put a **TLS-terminating reverse proxy** (Caddy, Traefik, nginx) in front, or set `SESSION_COOKIE_SECURE=true` once HTTPS is in place. Without the gate, any non-loopback exposure still **requires** an authenticating reverse proxy.
 
 ## Limitations
 
