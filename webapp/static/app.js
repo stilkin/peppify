@@ -368,7 +368,7 @@ async function lookupBuyer() {
     const lookupResp = await fetch(
       `/api/lookup?vatNumber=${encodeURIComponent(vat)}&countryCode=${encodeURIComponent(country)}`,
     );
-    const lookupData = await lookupResp.json();
+    const lookupData = await lookupResp.json().catch(() => ({}));
     if (!lookupResp.ok) {
       // 404 = no participant resolves for this VAT in the active environment
       // (notably, the test directory does not resolve legal VAT numbers).

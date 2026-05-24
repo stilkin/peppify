@@ -13,11 +13,6 @@ bind = f"{os.getenv('BIND_HOST', '127.0.0.1')}:{os.getenv('BIND_PORT', '5000')}"
 # Import the app once in the master and fork workers from it, so every worker
 # shares one session-signing key even when SECRET_KEY is unset. Without this, a
 # multi-worker run would mint a different random key per worker and the login
-# session would only validate on whichever worker happened to set it.
+# session would only validate on whichever worker happened to set it. Preloading
+# also means webapp.app's import-time warn_if_exposed() fires once in the master.
 preload_app = True
-
-
-def on_starting(server: object) -> None:  # noqa: ARG001
-    from webapp.app import warn_if_exposed
-
-    warn_if_exposed()

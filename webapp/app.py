@@ -106,6 +106,12 @@ def warn_if_exposed() -> None:
         )
 
 
+# Run at import so the warning fires in every run mode from one call site: the
+# dev server, bare-metal gunicorn, and the container (where --preload imports the
+# app in the master). Avoids needing a gunicorn.conf.py on_starting hook.
+warn_if_exposed()
+
+
 @app.before_request
 def _require_auth() -> Any:
     """When the gate is on, require an authenticated session for all routes
@@ -273,5 +279,4 @@ if __name__ == "__main__":
     host = os.getenv("BIND_HOST", "127.0.0.1")
     port = int(os.getenv("BIND_PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
-    warn_if_exposed()
     app.run(host=host, port=port, debug=debug)
